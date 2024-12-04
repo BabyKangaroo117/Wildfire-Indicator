@@ -12,8 +12,8 @@ class RetrieveArduino:
 
     def GetData(self):
         with serial.Serial(self.port, self.baudrate, timeout=self.timeout) as ser:
+            while(ser.readline().decode('utf-8').strip() != "start"):
+                pass    
+            self.temp = ast.literal_eval(ser.readline().decode('utf-8').strip())
+            self.humidity = ast.literal_eval(ser.readline().decode('utf-8').strip())
 
-            while(ser.readline().decode('utf8').rstrip != "start"):
-                pass # Sync data collection
-            self.temp = float(ser.readline().decode('utf-8').rstrip())
-            self.humidity = float(ser.readline().decode('utf-8').rstrip())
