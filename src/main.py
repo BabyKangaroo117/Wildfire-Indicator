@@ -1,24 +1,52 @@
+import queue
 import tkinter as tk
 from tkinter import ttk
 import os
 import json
 import select
 import time
-import random
+import threading
+import signal
 from typing import Dict, Any
 from RetrieveArduinoData import RetrieveArduino
+from MatlabScriptRunner import MatlabRunner
+
+
 class SensorProcess:
     def __init__(self):
         self.pipe_read, self.pipe_write = os.pipe()
+        self.matlab_queue = queue.Queue()
+        self.matlab_runner = None
+        self.smoke_detection_counter = 0
         
     def start(self):
+        # Create MatlabRunner in main thread before forking
+        self.matlab_runner = MatlabRunner()
+        
         pid = os.fork()
         if pid == 0:
             os.close(self.pipe_read)
             self.run_sensor_loop()
         else:
             os.close(self.pipe_write)
+            # Start MATLAB process in a separate thread
+            self.start_matlab_thread()
             return pid
+    
+    def matlab_worker(self):
+        """Thread function to run MATLAB script"""
+        try:
+            # Instead of creating a new MatlabRunner, use the existing one
+            if self.matlab_runner:
+                self.matlab_runner.run_script('/home/joey/Repos/Wildfire-Indicator/src/smoke_detection.m')
+        except Exception as e:
+            print(f"Error in MATLAB thread: {e}")
+            
+    def start_matlab_thread(self):
+        """Start MATLAB in a separate thread"""
+        matlab_thread = threading.Thread(target=self.matlab_worker)
+        matlab_thread.daemon = True
+        matlab_thread.start()
             
     def run_sensor_loop(self):
         arduino_data = RetrieveArduino() 
@@ -26,15 +54,29 @@ class SensorProcess:
         data = {
             "temperature": 0,
             "humidity": 0,
-            "high_temp": False,
-            "low_humidity": False 
+            "smoke_detected": False 
         }
                 
         while True:
             arduino_data = RetrieveArduino() 
             arduino_data.GetData()
             data["temperature"] = arduino_data.temp
-            data["humidity"] = arduino_data.humidity 
+            data["humidity"] = arduino_data.humidity
+            
+            # Check for MATLAB output
+            try:
+                matlab_output = self.matlab_queue.get_nowait()
+                if matlab_output == "SMOKE_DETECTED":
+                    self.smoke_detection_counter += 1
+                    # Require 3 consecutive smoke detections to trigger the warning
+                    if self.smoke_detection_counter >= 3:
+                        data["smoke_detected"] = True
+                else:
+                    self.smoke_detection_counter = 0
+                    data["smoke_detected"] = False
+            except queue.Empty:
+                # No MATLAB output available, continue with current state
+                pass
             
             try:
                 message = json.dumps(data).encode('utf-8') + b'\n'
@@ -46,6 +88,71 @@ class SensorProcess:
         
         os.close(self.pipe_write)
         os._exit(0)
+            
+    def run_sensor_loop(self):
+        arduino_data = RetrieveArduino() 
+        arduino_data.GetData()
+        data = {
+            "temperature": 0,
+            "humidity": 0,
+            "smoke_detected": False 
+        }
+                
+        while True:
+            arduino_data = RetrieveArduino() 
+            arduino_data.GetData()
+            data["temperature"] = arduino_data.temp
+            data["humidity"] = arduino_data.humidity
+            
+            # Check for MATLAB output
+            try:
+                matlab_output = self.matlab_queue.get_nowait()
+                if matlab_output == "SMOKE_DETECTED":
+                    self.smoke_detection_counter += 1
+                    # Require 3 consecutive smoke detections to trigger the warning
+                    if self.smoke_detection_counter >= 3:
+                        data["smoke_detected"] = True
+                else:
+                    self.smoke_detection_counter = 0
+                    data["smoke_detected"] = False
+            except queue.Empty:
+                # No MATLAB output available, continue with current state
+                pass
+            
+            try:
+                message = json.dumps(data).encode('utf-8') + b'\n'
+                os.write(self.pipe_write, message)
+            except OSError:
+                break
+                
+            time.sleep(1)
+        
+        os.close(self.pipe_write)
+        os._exit(0)
+
+class MatlabOutputHandler:
+    """Handles MATLAB output and updates the smoke detection status"""
+    def __init__(self, queue):
+        self.queue = queue
+
+    def handle_output(self, output: str):
+        """Process MATLAB output and put results in queue"""
+        try:
+            # Parse the prediction line
+            if "Prediction:" in output:
+                # Split the line into parts
+                parts = output.split("(")
+                prediction = parts[0].split(":")[1].strip()
+                accuracy = float(parts[1].strip("%)"))
+                
+                # Check if it's a smoke prediction with accuracy >= 80%
+                if prediction == "smoke" and accuracy >= 80:
+                    self.queue.put("SMOKE_DETECTED")
+                else:
+                    self.queue.put("NO_SMOKE")
+        except (IndexError, ValueError) as e:
+            print(f"Error parsing MATLAB output: {e}")
+            self.queue.put("NO_SMOKE")    
 
 class EnvironmentalMonitor:
     def __init__(self, root: tk.Tk, pipe_fd: int):
@@ -66,14 +173,13 @@ class EnvironmentalMonitor:
         self.sensor_data = {
             "temperature": 0.0,
             "humidity": 0.0,
-            "high_temp": False,
-            "low_humidity": False
+            "smoke_detected": False
         }
         
         self.create_sensor_displays()
         self.create_warning_displays()
         self.check_sensor_data()
-        
+
     def create_sensor_displays(self):
         ttk.Label(self.main_frame, text="Temperature", style="Header.TLabel").grid(row=0, column=0, pady=5)
         self.temp_label = ttk.Label(self.main_frame, text="--°C", style="Normal.TLabel")
@@ -146,6 +252,14 @@ class EnvironmentalMonitor:
             self.dry_label.config(text="")
 
 def main():
+    # Set up signal handling in main thread
+    def signal_handler(sig, frame):
+        print('\nShutting down...')
+        # Cleanup code here
+        sys.exit(0)
+        
+    signal.signal(signal.SIGINT, signal_handler)
+    
     sensor_process = SensorProcess()
     child_pid = sensor_process.start()
     
@@ -159,6 +273,8 @@ def main():
         if child_pid:
             os.kill(child_pid, 9)
             os.waitpid(child_pid, 0)
+        if sensor_process.matlab_runner:
+            sensor_process.matlab_runner.cleanup_matlab()
 
 if __name__ == "__main__":
     main()       
