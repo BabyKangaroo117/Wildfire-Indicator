@@ -3,7 +3,7 @@ dht DHT;
 #define DHT11_PIN 7
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
 
 }
 
@@ -12,7 +12,7 @@ void loop() {
   Serial.println("start");
   Serial.println(String(DHT.temperature));
   Serial.println(String(DHT.humidity));
-  delay(1000);
+  delay(500);
 
 
 }
