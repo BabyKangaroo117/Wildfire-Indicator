@@ -46,8 +46,14 @@ class MatlabRunner:
 
         return True
 
-    def run_script(self, script_name: str = 'smoke_detection.m') -> bool:
-        """Run the specified MATLAB script"""
+    def run_script(self, script_name: str, write_pipe: int = None) -> bool:
+        """
+        Run the specified MATLAB script and optionally pipe output to parent
+        
+        Args:
+            script_name: Path to MATLAB script
+            write_pipe: File descriptor for write end of pipe to parent
+        """
         if not self.check_prerequisites():
             return False
 
@@ -69,7 +75,7 @@ class MatlabRunner:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 universal_newlines=True,
-                preexec_fn=os.setsid,  # Create new process group
+                preexec_fn=os.setsid,
                 env=dict(os.environ, MATLAB_JAVA='')
             )
 
@@ -78,35 +84,45 @@ class MatlabRunner:
                 if output == '' and self.process.poll() is not None:
                     break
                 if output:
+                    # Print locally for debugging
                     print(output.strip())
+                    
+                    # If pipe provided, send output to parent
+                    if write_pipe is not None:
+                        try:
+                            # Ensure output ends with newline and encode
+                            message = output.strip() + '\n'
+                            os.write(write_pipe, message.encode('utf-8'))
+                        except OSError as e:
+                            print(f"Error writing to pipe: {e}")
+                            return False
 
         except KeyboardInterrupt:
             print("\nReceived interrupt signal...")
             self.cleanup_matlab()
-            sys.exit(0)
+            return False
         except Exception as e:
             print(f"Failed to run MATLAB script: {str(e)}", file=sys.stderr)
             if self.process:
                 self.process.kill()
             return False
         finally:
-            # Make absolutely sure everything is cleaned up
             self.cleanup_matlab()
 
         return True
 
-def main():
-    """Main function to demonstrate usage"""
-    runner = MatlabRunner()
+#def main():
+ #   """Main function to demonstrate usage"""
+  #  runner = MatlabRunner()
     
-    try:
-        print("Starting MATLAB script...")
-        success = runner.run_script()
-    except KeyboardInterrupt:
-        print("\nExiting due to user interrupt...")
-        runner.cleanup_matlab()
-    finally:
-        print("Script terminated.")
+  #  try:
+  #      print("Starting MATLAB script...")
+  #      success = runner.run_script()
+  #  except KeyboardInterrupt:
+   #     print("\nExiting due to user interrupt...")
+       # runner.cleanup_matlab()
+  #  finally:
+  #      print("Script terminated.")
 
-if __name__ == "__main__":
-    main()
+#if __name__ == "__main__":
+    #main()

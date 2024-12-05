@@ -18,6 +18,7 @@ class SensorProcess:
         self.matlab_queue = queue.Queue()
         self.matlab_runner = None
         self.smoke_detection_counter = 0
+        self.matlab_handler = MatlabOutputHandler(self.matlab_queue)
         
     def start(self):
         # Create MatlabRunner in main thread before forking
@@ -35,59 +36,16 @@ class SensorProcess:
     
     def matlab_worker(self):
         """Thread function to run MATLAB script"""
-        try:
-            # Instead of creating a new MatlabRunner, use the existing one
-            if self.matlab_runner:
-                self.matlab_runner.run_script('/home/joey/Repos/Wildfire-Indicator/src/smoke_detection.m')
-        except Exception as e:
-            print(f"Error in MATLAB thread: {e}")
-            
+        runner = MatlabRunner()
+        runner.run_script('/home/joey/Repos/Wildfire-Indicator/src/smoke_detection.m')
+
+        
     def start_matlab_thread(self):
         """Start MATLAB in a separate thread"""
         matlab_thread = threading.Thread(target=self.matlab_worker)
         matlab_thread.daemon = True
         matlab_thread.start()
             
-    def run_sensor_loop(self):
-        arduino_data = RetrieveArduino() 
-        arduino_data.GetData()
-        data = {
-            "temperature": 0,
-            "humidity": 0,
-            "smoke_detected": False 
-        }
-                
-        while True:
-            arduino_data = RetrieveArduino() 
-            arduino_data.GetData()
-            data["temperature"] = arduino_data.temp
-            data["humidity"] = arduino_data.humidity
-            
-            # Check for MATLAB output
-            try:
-                matlab_output = self.matlab_queue.get_nowait()
-                if matlab_output == "SMOKE_DETECTED":
-                    self.smoke_detection_counter += 1
-                    # Require 3 consecutive smoke detections to trigger the warning
-                    if self.smoke_detection_counter >= 3:
-                        data["smoke_detected"] = True
-                else:
-                    self.smoke_detection_counter = 0
-                    data["smoke_detected"] = False
-            except queue.Empty:
-                # No MATLAB output available, continue with current state
-                pass
-            
-            try:
-                message = json.dumps(data).encode('utf-8') + b'\n'
-                os.write(self.pipe_write, message)
-            except OSError:
-                break
-                
-            time.sleep(1)
-        
-        os.close(self.pipe_write)
-        os._exit(0)
             
     def run_sensor_loop(self):
         arduino_data = RetrieveArduino() 
@@ -138,7 +96,7 @@ class MatlabOutputHandler:
     def handle_output(self, output: str):
         """Process MATLAB output and put results in queue"""
         try:
-            # Parse the prediction line
+           # Parse the prediction line
             if "Prediction:" in output:
                 # Split the line into parts
                 parts = output.split("(")
