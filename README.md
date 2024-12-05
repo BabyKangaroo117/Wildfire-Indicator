@@ -18,7 +18,7 @@ The integration of an AI-powered smoke detection system with real-time sensor da
 - Arduino IDE (for uploading code to the Arduino).
 - Python 3.6 or higher.
 - MATLAB (for training the smoke detection model).
-- Required Python libraries: `pyserial`, `matplotlib`, `numpy`, `tensorflow` (for neural network processing).
+- Required Python libraries: `pyserial`, `queue`, `signal`, `threading`, `tkinter`.
 - DHT11 sensor.
 
 ### Installation:
