@@ -51,6 +51,7 @@ The novelty lies in the integration of real-time environmental monitoring with a
 ## 4. **Code Structure**
 ### Main Components:
 - **Arduino Sensor Integration**: 
+  - The `temp-humidity-sensor.ino`is the code on the Arduino responsible for reading DHT11 sensor data and send it to the python process via serial.
   - The `RetrieveArduinoData.py` module retrieves temperature and humidity data from the Arduino-based DHT11 sensor.
   
 - **MATLAB Script Integration**:
