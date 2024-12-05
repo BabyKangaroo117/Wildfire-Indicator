@@ -5,7 +5,7 @@ import ast
 class RetrieveArduino:
     def __init__(self) -> None:
         self.port = "/dev/ttyACM0"
-        self.baudrate = 9600
+        self.baudrate = 115200
         self.timeout = 1
         self.temp = 0
         self.humidity = 0
