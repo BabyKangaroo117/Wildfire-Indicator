@@ -1,119 +1,142 @@
-# Project Report: Temperature and Humidity Sensor with Smoke Detection using AI
+# Project Report: Wild fire Sensor with Smoke Detection using AI
 
-## 1. Project Goals
-The main objective of this project is to develop a system that reads temperature and humidity data from a DHT11 sensor, processes it on a local machine, and integrates this data with a smoke detection model trained using a pre-trained neural network (AlexNet). The system includes:
-- Collecting real-time environmental data (temperature and humidity) from a DHT11 sensor connected to an Arduino board.
-- Transmitting the data to a Python script on the host machine.
-- Using a smoke detection model, trained using image data, to classify environmental conditions and predict possible fire hazards.
+## 1. **Project Goals**
+The primary goal of this project is to develop an integrated environmental monitoring system capable of detecting potential wildfire risks in real-time. The system leverages data from environmental sensors (temperature and humidity) and a machine learning model to detect smoke in the surroundings. The system will provide alerts for high fire risk and smoke detection and present this information through a graphical user interface (GUI). The key objectives of the project are:
 
-## 2. Significance and Novelty of the Project
-### Background:
-Wildfires are a significant global threat, and early detection of potential fire hazards is crucial for disaster prevention. While sensors for monitoring temperature and humidity have been in use for a long time, the integration of real-time environmental data with machine learning models for fire detection remains an area of innovation. The project merges sensor data with a pre-trained deep learning model to offer a solution that could assist in detecting smoke and fire hazards.
+- To collect and process environmental sensor data (temperature and humidity).
+- To perform real-time smoke detection using a pre-trained machine learning model (AlexNet).
+- To visualize the data in a GUI for real-time monitoring.
+- To provide timely alerts for smoke detection and fire risk.
+- To integrate data from both Arduino-based environmental sensors and MATLAB-based smoke detection.
 
-### Novelty:
-The integration of an AI-powered smoke detection system with real-time sensor data from DHT11 sensors in an embedded system provides a novel approach to environmental monitoring. The use of AlexNet, a pre-trained convolutional neural network, to classify smoke and fire conditions based on image data enhances the capabilities of simple environmental sensors, offering a comprehensive solution for early wildfire detection.
+## 2. **Significance and Novelty of the Project**
+Wildfires are a growing environmental threat, and early detection can significantly reduce the damage caused by these events. This project is significant because it combines both physical environmental sensing and advanced machine learning to detect and respond to wildfire threats. 
 
-## 3. Installation and Usage Instructions
+The novelty lies in the integration of real-time environmental monitoring with a machine learning model for smoke detection, along with a user-friendly GUI. This system uses an Arduino-based DHT11 sensor for temperature and humidity readings and combines it with an AlexNet-based transfer learning model to detect smoke through a camera feed. The integration of these components into a single, automated solution makes it a comprehensive tool for fire risk assessment.
+
+## 3. **Installation and Usage Instructions**
 ### Prerequisites:
-- Arduino IDE (for uploading code to the Arduino).
-- Python 3.6 or higher.
-- MATLAB (for training the smoke detection model).
-- Required Python libraries: `pyserial`, `queue`, `signal`, `threading`, `tkinter`.
-- DHT11 sensor.
+- MATLAB (with required toolboxes like Deep Learning Toolbox).
+- Python 3.8 or higher.
+- An Arduino with a DHT11 sensor for temperature and humidity.
+- GStreamer for video feed processing.
 
-### Installation:
-1. **Arduino Setup:**
-   - Connect the DHT11 sensor to the Arduino board.
-   - Upload the `temp-humidity-sensor.ino` code to the Arduino using the Arduino IDE.
-   - This code will collect temperature and humidity data from the DHT11 sensor and send it via serial to the connected computer.
+### Installation Steps:
+1. **Clone the repository**:
+   ```
+   git clone https://github.com/BabyKangaroo117/Wildfire-Indicator.git
+   cd Wildfire-Indicator
+   ```
 
-2. **Python Setup:**
-   - Install the necessary Python libraries by running:
-     ```bash
-     pip install pyserial numpy matplotlib tensorflow
+2. **MATLAB Setup**:
+   - Ensure that MATLAB is installed on your system, along with the necessary toolboxes (e.g., Deep Learning Toolbox).
+   - Modify the MATLAB path in `MatlabScriptRunner.py` if your installation path differs.
+
+3. **Install Python dependencies**:
+   ```
+   pip install pyserial
+   ```
+
+4. **Arduino Setup**:
+   - Connect the Arduino with a DHT11 sensor to the USB port.
+   - Upload the provided `temp-humidity-sensor.ino` script to the Arduino using the Arduino IDE.
+
+5. **Run the system**:
+   - Start the environmental monitoring system by running the main Python script:
      ```
-   - Run the Python script `src/main.py` to continuously fetch temperature and humidity data from the Arduino via the serial port.
+     python main.py
+     ```
+   - The system will start collecting sensor data and process smoke detection in real-time. The GUI will display temperature, humidity, smoke detection status, and fire risk warnings.
 
-3. **MATLAB Setup:**
-   - Use the `src/smoke_alexnet.m` script to train and test the smoke detection model using image data.
-   - Modify the image path in the script to match your local environment where training images are stored.
+## 4. **Code Structure**
+### Main Components:
+- **Arduino Sensor Integration**: 
+  - The `RetrieveArduinoData.py` module retrieves temperature and humidity data from the Arduino-based DHT11 sensor.
+  
+- **MATLAB Script Integration**:
+  - The `MatlabScriptRunner.py` module is responsible for running MATLAB scripts to handle the machine learning aspect of the project (smoke detection using AlexNet).
+  
+- **MATLAB Scripts**:
+  - `smoke_alexnet.m` is used for training the smoke detection model (AlexNet with transfer learning).
+  - `smoke_detection.m` handles the real-time detection and processing of frames for smoke detection.
+  
+- **User Interface (UI)**:
+  - The GUI is built using `tkinter` in the `main.py` file. It displays temperature, humidity, smoke detection status, and fire risk levels based on sensor data and machine learning predictions.
+  
+- **Process Management**:
+  - The `SensorProcess` class in `main.py` handles the sensor data reading process and manages the communication between the sensor, MATLAB script, and the GUI.
 
-4. **Execution:**
-   - After the setup, run `src/main.py` to get real-time sensor data.
-   - The program will print the temperature and humidity every second.
+#### Flowchart of Code Structure:
+```mermaid
+graph TD;
+    A[Sensor Process]  -->  B["Retrieve Arduino Data (DHT11 Sensor)"]
+    B --> C[Sensor Data Pipe]
+    B --> D["MATLAB Process (MATLAB Script)"]
+    D --> F[MATLAB Output Pipe]
+    D --> E["Machine Learning (Classify Smoke in Video Feed)"] 
+    E --> G[UI Updates and Alerts]
+```
 
-## 4. Code Structure
-### Overview:
-1. **Arduino Code (`temp-humidity-sensor.ino`):**
-   - Initializes the serial communication.
-   - Reads the temperature and humidity from the DHT11 sensor.
-   - Sends the data to the host system for further processing.
+### Explanation:
+1. **Sensor Process**: Runs a loop to fetch temperature and humidity data from the Arduino.
+2. **MATLAB Process**: Executes the smoke detection model using a live video feed processed through the MATLAB script.
+3. **UI**: Displays data and alerts based on sensor inputs and MATLAB predictions.
 
-2. **Python Code (`RetrieveArduinoData.py` and `main.py`):**
-   - Retrieves data from the Arduino via serial port.
-   - Processes the data for real-time monitoring.
-   - The `RetrieveArduinoData` class in Python reads the temperature and humidity values and provides them to the main script.
-
-1. **Python Code (`MatlabScriptRunner.py`):**
-    - The `MathlabRunner` script is responsible for running MATLAB scripts from Python. It manages the execution of MATLAB processes, checks for prerequisites, and ensures proper cleanup after running the script.
-    - The matlab script is run using `subprocess` and data are communicated via `PIPE` allowing for efficent data transfer between concurrent processes.
-
-3. **MATLAB Code (`smoke_alexnet.m`):**
-   - Loads image data for smoke classification.
-   - Trains the AlexNet model on the smoke detection dataset.
-   - Tests the model performance on unseen data.
-
-### Data Flow:
-1. **Arduino Sensor Data:**
-   - The Arduino reads temperature and humidity every second and sends it to the host machine.
-2. **Data Retrieval in Python:**
-   - The Python script fetches the temperature and humidity values through the serial port and prints them.
-3. **Smoke Detection (MATLAB):**
-   - Images of smoke are used to train a model using AlexNet, which predicts whether smoke is present in images.
-
-## 5. List of Functionalities and Verification Results
+## 5. **List of Functionalities and Verification Results**
 ### Functionalities:
-1. **Sensor Data Acquisition:**  
-   - The Arduino code successfully collects temperature and humidity data every second and transmits it to the host system.
-
-2. **Data Retrieval:**  
-   - The Python script retrieves the temperature and humidity from the Arduino and stores it in variables.
-
-3. **Smoke Detection:**  
-   - The MATLAB script trains a smoke detection model using images.
-   - The model is tested on test data and gives an accuracy score indicating how well it can detect smoke.
+1. **Sensor Data Collection**: 
+   - Reads temperature and humidity data from the Arduino sensor and sends it through a pipe to the main program.
+   
+2. **Smoke Detection**: 
+   - Uses a pre-trained AlexNet model to classify images for smoke detection.
+   
+3. **Fire Risk Assessment**: 
+   - Assesses fire risk based on temperature and humidity levels. If conditions are favorable (high temperature, low humidity), a risk alert is shown.
+   
+4. **Real-time Alerts**: 
+   - Displays warnings for detected smoke and fire risk on the GUI.
+   
+5. **GUI**:
+   - The GUI shows real-time temperature, humidity, and smoke status, and provides a graphical interface for the user to monitor environmental conditions.
 
 ### Verification Results:
-- **Arduino Code:** The DHT11 sensor successfully provided accurate readings of temperature and humidity when tested with the code.
-- **Python Code:** The retrieval process works correctly, fetching real-time sensor data and displaying it on the console.
-- **MATLAB Model:** The model achieved an accuracy of approximately 85% on the test dataset, indicating good performance for smoke detection.
+- **Sensor Data**: The temperature and humidity values are correctly read from the Arduino and displayed on the GUI.
+- **Smoke Detection**: The system successfully classifies images from the live camera feed as either "smoke" or "no smoke" based on the pre-trained model. 
+- **Fire Risk**: The fire risk warnings appear correctly based on the thresholds defined for temperature and humidity.
+  
+Sample output from the GUI:
+- Temperature: 35°C, Humidity: 15%
+- Smoke Detected: YES
+- Fire Risk: HIGH
 
-## 6. Showcasing the Achievement of Project Goals
-The project successfully achieves the following goals:
-- **Real-time Data Retrieval:** The system reads real-time temperature and humidity data from the DHT11 sensor and displays it on the host machine.
-- **Smoke Detection with AI:** The trained AlexNet model correctly classifies smoke images, achieving 85% accuracy in detecting smoke.
-- **Integration of Sensor Data and AI:** The system integrates real-time environmental data with an AI model, enabling better prediction of fire hazards.
+## 6. **Showcasing the Achievement of Project Goals**
+The project achieves its goals by:
+- **Real-time data collection**: The system collects real-time environmental data (temperature and humidity) using an Arduino-based sensor.
+- **Machine learning integration**: It uses a pre-trained AlexNet model to detect smoke in real-time, processed via MATLAB.
+- **Alerting system**: The system provides alerts for smoke detection and fire risk through a user-friendly GUI.
 
-Example execution result:
+Sample execution result:
 ```
-Temperature: 25.4°C
-Humidity: 60%
-Smoke detection result: Smoke present
+Prediction: smoke (85.3%)
+Smoke detected - updating warning
+⚠ SMOKE DETECTED! Check for fire hazards!
+Temperature: 35.0°C, Humidity: 15.0%
+⚠ HIGH FIRE RISK! High temperature and low humidity!
 ```
 
-## 7. Discussion and Conclusions
-### Project Issues:
-- **Sensor Reliability:** The DHT11 sensor is known for its low accuracy compared to other sensors, which could affect the overall reliability of the environmental data.
-- **Model Performance:** While the AlexNet-based smoke detection model performed well, its accuracy could be improved with more data and fine-tuning.
-- **Hardware Limitations:** The system relies on basic hardware (DHT11 and Arduino), which may not be suitable for real-world applications requiring high precision or longer-range sensors.
+## 7. **Discussion and Conclusions**
+### Issues:
+- **Real-time Performance**: The system's performance is constrained by the processing power available, particularly with the smoke detection model running in MATLAB.
+- **Sensor Communication**: The communication between the Arduino and the Python process could be improved for more robust error handling.
 
 ### Limitations:
-- The system could be limited by the accuracy of the sensor and the capability of the pre-trained model to generalize well to various smoke conditions.
-- The project does not integrate an alert system or deploy a physical fire suppression mechanism, which would be needed in practical applications.
+- The system's accuracy is limited by the quality of the machine learning model and environmental sensor readings.
+- Real-time video processing could be delayed depending on the system's hardware.
 
 ### Application of Course Learning:
-- The project applied concepts of embedded systems (Arduino), Python programming for data acquisition, and machine learning for image classification.
-- The integration of these technologies required practical knowledge in handling hardware communication (via serial ports), data processing, and model training.
+- **Python Programming**: Used for creating processes, handling communication between sensors and MATLAB, and building the GUI.
+- **MATLAB**: Applied for machine learning (transfer learning with AlexNet) and image processing for smoke detection.
+- **System Design**: Designed a multi-process system to handle sensor data collection, machine learning inference, and UI updates in real-time.
 
 ### Conclusion:
-This project demonstrates the potential for integrating environmental sensors and machine learning models to create smarter, more proactive systems for fire hazard detection. Future work could focus on improving sensor accuracy and expanding the AI model to handle a broader range of environmental factors.
+This project successfully demonstrates a comprehensive solution for real-time environmental monitoring and smoke detection, integrating sensor data and machine learning to assess fire risks and detect smoke efficiently. The system offers a promising tool for wildfire detection and mitigation efforts.
