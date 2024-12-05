@@ -54,6 +54,10 @@ The integration of an AI-powered smoke detection system with real-time sensor da
    - Processes the data for real-time monitoring.
    - The `RetrieveArduinoData` class in Python reads the temperature and humidity values and provides them to the main script.
 
+1. **Python Code (`MatlabScriptRunner.py`):**
+    - The `MathlabRunner` script is responsible for running MATLAB scripts from Python. It manages the execution of MATLAB processes, checks for prerequisites, and ensures proper cleanup after running the script.
+    - The matlab script is run using `subprocess` and data are communicated via `PIPE` allowing for efficent data transfer between concurrent processes.
+
 3. **MATLAB Code (`smoke_alexnet.m`):**
    - Loads image data for smoke classification.
    - Trains the AlexNet model on the smoke detection dataset.
